@@ -9,7 +9,8 @@ async function main() {
     { command: "habits", description: "Показать активные привычки" },
     { command: "newhabit", description: "Создать новую привычку" },
     { command: "stats", description: "Быстрая статистика" },
-    { command: "app", description: "Открыть Mini App" }
+    { command: "app", description: "Открыть Mini App" },
+    { command: "premium", description: "⭐ Купить Premium (250 Stars/мес)" }
   ];
 
   const response = await fetch(`https://api.telegram.org/bot${token}/setMyCommands`, {

@@ -42,6 +42,30 @@ export function miniAppButton(label = "🚀 Открыть HabitFlow") {
   };
 }
 
+export async function sendInvoice(
+  chatId: number,
+  title: string,
+  description: string,
+  payload: string,
+  starCount: number
+): Promise<void> {
+  await callTelegram("sendInvoice", {
+    chat_id: chatId,
+    title,
+    description,
+    payload,
+    provider_token: "",   // пустой = оплата Stars
+    currency: "XTR",
+    prices: [{ label: title, amount: starCount }]
+  });
+}
+
+export async function answerPreCheckoutQuery(queryId: string, ok: boolean, errorMessage?: string): Promise<void> {
+  const body: Record<string, unknown> = { pre_checkout_query_id: queryId, ok };
+  if (!ok && errorMessage) body.error_message = errorMessage;
+  await callTelegram("answerPreCheckoutQuery", body);
+}
+
 export async function answerInlineQuery(inlineQueryId: string, text: string): Promise<void> {
   await callTelegram("answerInlineQuery", {
     inline_query_id: inlineQueryId,
