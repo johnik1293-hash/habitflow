@@ -53,6 +53,7 @@ export function App() {
   const [streakByHabitId, setStreakByHabitId] = useState<Record<number, number>>({});
   const [localHabits, setLocalHabits] = useState<Habit[]>(() => loadLocalHabits());
   const [localLogsByHabit, setLocalLogsByHabit] = useState<Record<number, HabitLog[]>>(() => loadLocalLogs());
+  const [showPremiumBanner, setShowPremiumBanner] = useState(false);
 
   useEffect(() => {
     const telegramId = telegramUser?.id ?? Number(import.meta.env.VITE_DEV_TELEGRAM_ID ?? 1);
@@ -140,7 +141,12 @@ export function App() {
     try {
       await api.createHabit(user, draft);
       await reload();
-    } catch {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.includes("free_limit_reached")) {
+        setShowPremiumBanner(true);
+        return;
+      }
       setIsOffline(true);
       return createHabit(draft);
     }
@@ -184,6 +190,14 @@ export function App() {
     }
     setSelectedHabitId(habitId);
     setView("habit_detail");
+  }
+
+  async function reloadProfile() {
+    if (!user) return;
+    try {
+      const fresh = await api.getProfile(user.telegram_id);
+      setUser(fresh);
+    } catch { /* ignore */ }
   }
 
   async function updateTimezone(timezone: string) {
@@ -256,6 +270,48 @@ export function App() {
 
   return (
     <Layout title="HabitFlow" page={view as MainPage} onNavigate={(page) => setView(page)}>
+      {showPremiumBanner && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 1000, padding: "24px"
+        }}>
+          <div style={{
+            background: "var(--tg-theme-bg-color, #fff)",
+            borderRadius: "20px", padding: "28px 24px",
+            maxWidth: "340px", width: "100%", textAlign: "center"
+          }}>
+            <div style={{ fontSize: "48px", marginBottom: "12px" }}>⭐</div>
+            <div style={{ fontWeight: 700, fontSize: "18px", marginBottom: "8px" }}>
+              Лимит бесплатного плана
+            </div>
+            <div style={{ fontSize: "14px", color: "var(--tg-theme-hint-color, #999)", marginBottom: "20px", lineHeight: 1.5 }}>
+              На бесплатном плане можно вести до 2 привычек.<br />
+              Купи Premium, чтобы добавлять неограниченно.
+            </div>
+            <button
+              onClick={() => { setShowPremiumBanner(false); setView("settings"); }}
+              style={{
+                width: "100%", padding: "13px",
+                background: "linear-gradient(135deg, #f6d365 0%, #fda085 100%)",
+                color: "#fff", border: "none", borderRadius: "12px",
+                fontWeight: 700, fontSize: "15px", cursor: "pointer", marginBottom: "10px"
+              }}
+            >
+              Купить Premium — 250 ⭐
+            </button>
+            <button
+              onClick={() => setShowPremiumBanner(false)}
+              style={{
+                background: "none", border: "none", color: "var(--tg-theme-hint-color, #999)",
+                cursor: "pointer", fontSize: "14px"
+              }}
+            >
+              Отмена
+            </button>
+          </div>
+        </div>
+      )}
       {view === "dashboard" && (
         <Dashboard
           habits={shownHabits}
@@ -277,7 +333,16 @@ export function App() {
       {view === "analytics" && (
         <Analytics overview={isOffline ? localOverview : overview} habits={shownHabits} streakByHabitId={streakByHabitId} />
       )}
-      {view === "settings" && <Settings user={user} onUpdateTimezone={updateTimezone} />}
+      {view === "settings" && (
+        <Settings
+          user={user}
+          onUpdateTimezone={updateTimezone}
+          onPremiumActivated={() => {
+            reloadProfile();
+            reload();
+          }}
+        />
+      )}
     </Layout>
   );
 }

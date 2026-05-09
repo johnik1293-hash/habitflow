@@ -39,6 +39,8 @@ export const api = {
 
   getOverview: (user: User) => request<Overview>("/analytics/overview", {}, user),
   getHabitAnalytics: (user: User, id: number) => request(`/analytics/habits/${id}`, {}, user),
-  getCalendar: (user: User, month: string) => request(`/analytics/calendar/${month}`, {}, user)
+  getCalendar: (user: User, month: string) => request(`/analytics/calendar/${month}`, {}, user),
+
+  getInvoiceLink: () => request<{ url: string }>("/tribute/invoice-link")
 };
 

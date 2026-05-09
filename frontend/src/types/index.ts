@@ -4,6 +4,8 @@ export interface User {
   username?: string;
   first_name?: string;
   timezone: string;
+  subscription_tier?: "free" | "premium";
+  subscription_expires_at?: string | null;
   created_at: string;
   updated_at: string;
 }
