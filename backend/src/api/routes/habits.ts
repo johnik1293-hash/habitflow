@@ -1,19 +1,19 @@
 import { Router } from "express";
-import { db } from "../../database/db.js";
+import { sql } from "../../database/db.js";
 import { requireUserId, todayDate } from "../utils.js";
 
 export const habitsRouter = Router();
 
-habitsRouter.get("/", (req, res) => {
+habitsRouter.get("/", async (req, res) => {
   const userId = requireUserId(req, res);
   if (!userId) return;
-  const rows = db
-    .prepare("SELECT * FROM habits WHERE user_id = ? ORDER BY created_at DESC")
-    .all(userId);
+  const rows = await sql`
+    SELECT * FROM habits WHERE user_id = ${userId} ORDER BY created_at DESC
+  `;
   res.json(rows);
 });
 
-habitsRouter.post("/", (req, res) => {
+habitsRouter.post("/", async (req, res) => {
   const { title, emoji = "⭐", reminder_time = null } = req.body;
   const userId = requireUserId(req, res);
   if (!userId) return;
@@ -23,67 +23,68 @@ habitsRouter.post("/", (req, res) => {
     return;
   }
 
-  const stmt = db.prepare(
-    "INSERT INTO habits (user_id, title, emoji, reminder_time) VALUES (?, ?, ?, ?)"
-  );
-  const result = stmt.run(userId, title, emoji, reminder_time);
-  const habit = db.prepare("SELECT * FROM habits WHERE id = ?").get(result.lastInsertRowid);
+  const [habit] = await sql`
+    INSERT INTO habits (user_id, title, emoji, reminder_time)
+    VALUES (${userId}, ${title}, ${emoji}, ${reminder_time})
+    RETURNING *
+  `;
   res.status(201).json(habit);
 });
 
-habitsRouter.put("/:id", (req, res) => {
+habitsRouter.put("/:id", async (req, res) => {
   const userId = requireUserId(req, res);
   if (!userId) return;
   const id = Number(req.params.id);
   const { title, description, emoji, target_frequency, reminder_time, is_active } = req.body;
 
-  const exists = db
-    .prepare("SELECT id FROM habits WHERE id = ? AND user_id = ?")
-    .get(id, userId) as { id: number } | undefined;
+  const [exists] = await sql`
+    SELECT id FROM habits WHERE id = ${id} AND user_id = ${userId}
+  `;
   if (!exists) {
     res.status(404).json({ error: "Habit not found" });
     return;
   }
 
-  db.prepare(
-    `UPDATE habits
-     SET title = COALESCE(?, title),
-         description = COALESCE(?, description),
-         emoji = COALESCE(?, emoji),
-         target_frequency = COALESCE(?, target_frequency),
-         reminder_time = COALESCE(?, reminder_time),
-         is_active = COALESCE(?, is_active),
-         updated_at = CURRENT_TIMESTAMP
-     WHERE id = ? AND user_id = ?`
-  ).run(title, description, emoji, target_frequency, reminder_time, is_active, id, userId);
-
-  const updated = db.prepare("SELECT * FROM habits WHERE id = ?").get(id);
+  const [updated] = await sql`
+    UPDATE habits
+    SET title = COALESCE(${title ?? null}, title),
+        description = COALESCE(${description ?? null}, description),
+        emoji = COALESCE(${emoji ?? null}, emoji),
+        target_frequency = COALESCE(${target_frequency ?? null}, target_frequency),
+        reminder_time = COALESCE(${reminder_time ?? null}, reminder_time),
+        is_active = COALESCE(${is_active ?? null}, is_active),
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ${id} AND user_id = ${userId}
+    RETURNING *
+  `;
   res.json(updated);
 });
 
-habitsRouter.delete("/:id", (req, res) => {
+habitsRouter.delete("/:id", async (req, res) => {
   const userId = requireUserId(req, res);
   if (!userId) return;
   const id = Number(req.params.id);
 
-  const result = db.prepare("DELETE FROM habits WHERE id = ? AND user_id = ?").run(id, userId);
-  if (!result.changes) {
+  const [deleted] = await sql`
+    DELETE FROM habits WHERE id = ${id} AND user_id = ${userId} RETURNING id
+  `;
+  if (!deleted) {
     res.status(404).json({ error: "Habit not found" });
     return;
   }
   res.status(204).send();
 });
 
-habitsRouter.get("/:id/streak", (req, res) => {
+habitsRouter.get("/:id/streak", async (req, res) => {
   const userId = requireUserId(req, res);
   if (!userId) return;
   const id = Number(req.params.id);
 
-  const logs = db
-    .prepare(
-      "SELECT date FROM habit_logs WHERE habit_id = ? AND user_id = ? ORDER BY date DESC LIMIT 365"
-    )
-    .all(id, userId) as Array<{ date: string }>;
+  const logs = await sql`
+    SELECT date FROM habit_logs
+    WHERE habit_id = ${id} AND user_id = ${userId}
+    ORDER BY date DESC LIMIT 365
+  ` as Array<{ date: string }>;
 
   const dates = new Set(logs.map((row) => row.date));
   let streak = 0;

@@ -1,12 +1,7 @@
-import Database from "better-sqlite3";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { neon } from "@neondatabase/serverless";
 
-const dbPath = process.env.DATABASE_PATH ?? "./database.sqlite";
-export const db = new Database(dbPath);
-
-export function runMigrations(): void {
-  const migrationPath = resolve(process.cwd(), "src/database/migrations/init.sql");
-  const sql = readFileSync(migrationPath, "utf8");
-  db.exec(sql);
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL environment variable is required");
 }
+
+export const sql = neon(process.env.DATABASE_URL);

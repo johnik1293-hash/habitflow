@@ -1,28 +1,36 @@
-import { db } from "../database/db.js";
+import { sql } from "../database/db.js";
 import { getCurrentStreak, getLongestStreak } from "./streakService.js";
 
-export function getOverview(userId: number) {
-  const total = db
-    .prepare("SELECT COUNT(*) as value FROM habits WHERE user_id = ? AND is_active = 1")
-    .get(userId) as { value: number };
-  const completedWeek = db
-    .prepare("SELECT COUNT(*) as value FROM habit_logs WHERE user_id = ? AND date >= date('now','-6 day')")
-    .get(userId) as { value: number };
+export async function getOverview(userId: number) {
+  const [total] = await sql`
+    SELECT COUNT(*) as value FROM habits WHERE user_id = ${userId} AND is_active = TRUE
+  ` as Array<{ value: string }>;
 
-  const habits = db.prepare("SELECT id FROM habits WHERE user_id = ? AND is_active = 1").all(userId) as Array<{
-    id: number;
-  }>;
-  const streaks = habits.map((h) => getCurrentStreak(userId, h.id));
-  const longest = habits.reduce((acc, h) => Math.max(acc, getLongestStreak(userId, h.id)), 0);
+  const [completedWeek] = await sql`
+    SELECT COUNT(*) as value FROM habit_logs
+    WHERE user_id = ${userId}
+      AND date >= to_char(CURRENT_DATE - INTERVAL '6 days', 'YYYY-MM-DD')
+  ` as Array<{ value: string }>;
 
-  const possibleWeek = total.value * 7;
-  const completionRate = possibleWeek ? Math.round((completedWeek.value / possibleWeek) * 100) : 0;
+  const habits = await sql`
+    SELECT id FROM habits WHERE user_id = ${userId} AND is_active = TRUE
+  ` as Array<{ id: number }>;
+
+  const streaks = await Promise.all(habits.map((h) => getCurrentStreak(userId, h.id)));
+  const longest = (await Promise.all(habits.map((h) => getLongestStreak(userId, h.id)))).reduce(
+    (acc, s) => Math.max(acc, s),
+    0
+  );
+
+  const totalCount = Number(total.value);
+  const completedCount = Number(completedWeek.value);
+  const possibleWeek = totalCount * 7;
+  const completionRate = possibleWeek ? Math.round((completedCount / possibleWeek) * 100) : 0;
 
   return {
-    total_habits: total.value,
+    total_habits: totalCount,
     active_streaks: streaks.filter((s) => s > 0).length,
     completion_rate: completionRate,
-    longest_streak: longest
+    longest_streak: longest,
   };
 }
-

@@ -1,13 +1,15 @@
-import { db } from "../database/db.js";
+import { sql } from "../database/db.js";
 
 function toISODate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-export function getCurrentStreak(userId: number, habitId: number): number {
-  const rows = db
-    .prepare("SELECT date FROM habit_logs WHERE habit_id = ? AND user_id = ? ORDER BY date DESC LIMIT 366")
-    .all(habitId, userId) as Array<{ date: string }>;
+export async function getCurrentStreak(userId: number, habitId: number): Promise<number> {
+  const rows = await sql`
+    SELECT date FROM habit_logs
+    WHERE habit_id = ${habitId} AND user_id = ${userId}
+    ORDER BY date DESC LIMIT 366
+  ` as Array<{ date: string }>;
 
   const completed = new Set(rows.map((row) => row.date));
   const now = new Date();
@@ -24,10 +26,13 @@ export function getCurrentStreak(userId: number, habitId: number): number {
   return streak;
 }
 
-export function getLongestStreak(userId: number, habitId: number): number {
-  const rows = db
-    .prepare("SELECT date FROM habit_logs WHERE habit_id = ? AND user_id = ? ORDER BY date ASC")
-    .all(habitId, userId) as Array<{ date: string }>;
+export async function getLongestStreak(userId: number, habitId: number): Promise<number> {
+  const rows = await sql`
+    SELECT date FROM habit_logs
+    WHERE habit_id = ${habitId} AND user_id = ${userId}
+    ORDER BY date ASC
+  ` as Array<{ date: string }>;
+
   if (!rows.length) return 0;
 
   let longest = 1;
@@ -45,4 +50,3 @@ export function getLongestStreak(userId: number, habitId: number): number {
   }
   return longest;
 }
-
