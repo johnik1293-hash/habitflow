@@ -14,28 +14,37 @@ export function HabitForm({
 }) {
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
-  const [emoji, setEmoji] = useState(initial?.emoji ?? "⭐");
-  const [reminderTime, setReminderTime] = useState(initial?.reminder_time ?? "09:00");
 
   return (
     <form
       onSubmit={async (e) => {
         e.preventDefault();
-        await onSubmit({
-          title,
-          description,
-          emoji,
-          reminder_time: reminderTime
-        });
+        await onSubmit({ title, description });
       }}
-      style={{ display: "grid", gap: 8 }}
+      style={{ display: "grid", gap: 12 }}
     >
-      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название привычки" required />
-      <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Описание" />
-      <input value={emoji} onChange={(e) => setEmoji(e.target.value)} placeholder="Эмодзи" />
-      <input type="time" value={reminderTime} onChange={(e) => setReminderTime(e.target.value)} />
-      <button type="submit">{submitLabel}</button>
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Название привычки"
+        required
+      />
+      <input
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        placeholder="Описание (необязательно)"
+      />
+      <button type="submit" style={{
+        background: "var(--tg-theme-button-color, #2563eb)",
+        color: "var(--tg-theme-button-text-color, #fff)",
+        border: "none",
+        padding: "13px",
+        fontWeight: 600,
+        fontSize: "16px",
+        borderRadius: "12px"
+      }}>
+        {submitLabel}
+      </button>
     </form>
   );
 }
-

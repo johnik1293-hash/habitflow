@@ -20,10 +20,10 @@ export function Dashboard({
     <section>
       <p>Твой дневной прогресс и быстрые действия.</p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 8, marginBottom: 12 }}>
-        <div style={{ border: "1px solid #ddd", borderRadius: 10, padding: 10 }}>
+        <div style={{ border: "1px solid var(--tg-theme-hint-color, #ddd)", borderRadius: 10, padding: 10, background: "var(--tg-theme-secondary-bg-color, #f8f8f8)" }}>
           Активные: <strong>{overview?.total_habits ?? 0}</strong>
         </div>
-        <div style={{ border: "1px solid #ddd", borderRadius: 10, padding: 10 }}>
+        <div style={{ border: "1px solid var(--tg-theme-hint-color, #ddd)", borderRadius: 10, padding: 10, background: "var(--tg-theme-secondary-bg-color, #f8f8f8)" }}>
           Completion: <strong>{overview?.completion_rate ?? 0}%</strong>
         </div>
       </div>

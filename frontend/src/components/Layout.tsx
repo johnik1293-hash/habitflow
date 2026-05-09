@@ -32,8 +32,16 @@ export function Layout({
             style={{
               padding: "10px 8px",
               borderRadius: 10,
-              border: page === item.key ? "2px solid #111" : "1px solid #ccc",
-              background: "white"
+              border: page === item.key
+                ? "2px solid var(--tg-theme-button-color, #2563eb)"
+                : "1px solid var(--tg-theme-hint-color, #ccc)",
+              background: page === item.key
+                ? "var(--tg-theme-button-color, #2563eb)"
+                : "var(--tg-theme-secondary-bg-color, #f0f0f0)",
+              color: page === item.key
+                ? "var(--tg-theme-button-text-color, #fff)"
+                : "var(--tg-theme-text-color, #000)",
+              fontWeight: page === item.key ? 600 : 400
             }}
           >
             {item.label}
