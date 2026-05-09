@@ -263,6 +263,11 @@ export function App() {
           logs={habitLogs}
           streak={streakByHabitId[selectedHabit.id] ?? 0}
           onBack={() => setView("dashboard")}
+          onUpdate={async (patch) => {
+            if (!user) return;
+            await api.updateHabit(user, selectedHabit.id, patch);
+            await reload();
+          }}
         />
       </Layout>
     );

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { sql } from "../../database/db";
 import { requireUserId, todayDate } from "../utils";
+import { cancelHabitNotifications, scheduleHabitNotification } from "../../services/notificationService";
 
 export const habitsRouter = Router();
 
@@ -48,6 +49,11 @@ habitsRouter.post("/", async (req, res) => {
     VALUES (${userId}, ${title}, ${emoji}, ${reminder_time})
     RETURNING *
   `;
+
+  if (reminder_time) {
+    await scheduleHabitNotification(userId, habit.id, reminder_time);
+  }
+
   res.status(201).json(habit);
 });
 
@@ -77,6 +83,15 @@ habitsRouter.put("/:id", async (req, res) => {
     WHERE id = ${id} AND user_id = ${userId}
     RETURNING *
   `;
+
+  if (reminder_time !== undefined) {
+    if (reminder_time) {
+      await scheduleHabitNotification(userId, id, reminder_time);
+    } else {
+      await cancelHabitNotifications(userId, id);
+    }
+  }
+
   res.json(updated);
 });
 

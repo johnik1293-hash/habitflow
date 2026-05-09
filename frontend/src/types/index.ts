@@ -17,7 +17,7 @@ export interface Habit {
   description?: string;
   emoji: string;
   target_frequency: number;
-  reminder_time?: string;
+  reminder_time?: string | null;
   is_active: number | boolean;
   created_at: string;
   updated_at: string;

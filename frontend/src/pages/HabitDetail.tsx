@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { HabitCalendar } from "../components/HabitCalendar";
 import type { Habit, HabitLog } from "../types";
 
@@ -14,15 +15,41 @@ export function HabitDetail({
   habit,
   logs,
   streak,
-  onBack
+  onBack,
+  onUpdate
 }: {
   habit: Habit;
   logs: HabitLog[];
   streak: number;
   onBack: () => void;
+  onUpdate?: (patch: Partial<Habit>) => Promise<void>;
 }) {
   const color = habitColor(habit.id);
   const totalDone = logs.length;
+
+  const [reminderEnabled, setReminderEnabled] = useState(!!habit.reminder_time);
+  const [reminderTime, setReminderTime] = useState(habit.reminder_time ?? "09:00");
+  const [saving, setSaving] = useState(false);
+
+  async function saveReminder(enabled: boolean, time: string) {
+    if (!onUpdate) return;
+    setSaving(true);
+    try {
+      await onUpdate({ reminder_time: enabled ? time : null });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleToggle(enabled: boolean) {
+    setReminderEnabled(enabled);
+    await saveReminder(enabled, reminderTime);
+  }
+
+  async function handleTimeChange(time: string) {
+    setReminderTime(time);
+    if (reminderEnabled) await saveReminder(true, time);
+  }
 
   return (
     <section style={{ padding: "0 0 24px" }}>
@@ -69,6 +96,66 @@ export function HabitDetail({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Напоминание */}
+      <div style={{
+        background: "var(--tg-theme-secondary-bg-color, #f8f8f8)",
+        borderRadius: "20px", padding: "20px", marginBottom: "16px"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: reminderEnabled ? "14px" : 0 }}>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: "15px" }}>🔔 Напоминание</div>
+            {!reminderEnabled && (
+              <div style={{ fontSize: "12px", color: "var(--tg-theme-hint-color, #999)", marginTop: "2px" }}>
+                Бот напомнит в Telegram
+              </div>
+            )}
+          </div>
+          <label style={{ position: "relative", display: "inline-block", width: 44, height: 24, cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={reminderEnabled}
+              onChange={(e) => handleToggle(e.target.checked)}
+              style={{ opacity: 0, width: 0, height: 0 }}
+            />
+            <span style={{
+              position: "absolute", inset: 0,
+              background: reminderEnabled ? color : "#ccc",
+              borderRadius: 24,
+              transition: "background 0.2s"
+            }} />
+            <span style={{
+              position: "absolute",
+              top: 3, left: reminderEnabled ? 23 : 3,
+              width: 18, height: 18,
+              background: "#fff",
+              borderRadius: "50%",
+              transition: "left 0.2s"
+            }} />
+          </label>
+        </div>
+
+        {reminderEnabled && (
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <input
+              type="time"
+              value={reminderTime}
+              onChange={(e) => handleTimeChange(e.target.value)}
+              style={{
+                flex: 1, padding: "10px 14px",
+                borderRadius: "10px",
+                border: `1.5px solid ${color}`,
+                fontSize: "18px", fontWeight: 600,
+                background: "var(--tg-theme-bg-color, #fff)",
+                color: "inherit"
+              }}
+            />
+            <div style={{ fontSize: "13px", color: "var(--tg-theme-hint-color, #999)", lineHeight: 1.4 }}>
+              {saving ? "Сохраняем…" : "Ежедневно\nв Telegram"}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Календарь */}
