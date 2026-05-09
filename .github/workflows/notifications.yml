@@ -1,0 +1,17 @@
+name: Send Habit Notifications
+
+on:
+  schedule:
+    # Каждые 15 минут
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # Ручной запуск для теста
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger notifications
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" \
+            -X POST \
+            https://habitflow-backend-orcin.vercel.app/api/cron/notifications
