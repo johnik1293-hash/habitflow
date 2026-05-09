@@ -31,7 +31,8 @@ export async function handleTelegramWebhook(req: Request, res: Response): Promis
     if (text.startsWith("/habits")) message = handleHabitsSummary();
     if (text.startsWith("/newhabit")) message = handleNewHabit();
     if (text.startsWith("/stats")) message = handleStats();
-    if (text.startsWith("/app")) message = `Открыть Mini App: ${process.env.MINI_APP_URL ?? "not configured"}`;
+    if (text.startsWith("/appss_verify")) message = "appss_b2ab7d";
+    else if (text.startsWith("/app")) message = `Открыть Mini App: ${process.env.MINI_APP_URL ?? "not configured"}`;
 
     await sendTelegramMessage(chatId, message);
     console.log("Telegram command:", text, "=>", message);
