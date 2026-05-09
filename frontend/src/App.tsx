@@ -14,78 +14,223 @@ import type { Habit, HabitLog, User } from "./types";
 
 type MainPage = "dashboard" | "habits" | "analytics" | "settings";
 type View = MainPage | "habit_detail" | "habit_form";
+const STORAGE_HABITS = "habitflow_local_habits";
+const STORAGE_LOGS = "habitflow_local_logs";
+
+function loadLocalHabits(): Habit[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_HABITS);
+    return raw ? (JSON.parse(raw) as Habit[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalHabits(habits: Habit[]): void {
+  localStorage.setItem(STORAGE_HABITS, JSON.stringify(habits));
+}
+
+function loadLocalLogs(): Record<number, HabitLog[]> {
+  try {
+    const raw = localStorage.getItem(STORAGE_LOGS);
+    return raw ? (JSON.parse(raw) as Record<number, HabitLog[]>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveLocalLogs(logs: Record<number, HabitLog[]>): void {
+  localStorage.setItem(STORAGE_LOGS, JSON.stringify(logs));
+}
 
 export function App() {
   const { telegramUser } = useTelegram();
   const [user, setUser] = useState<User | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
   const [view, setView] = useState<View>("dashboard");
   const [selectedHabitId, setSelectedHabitId] = useState<number | null>(null);
   const [habitLogs, setHabitLogs] = useState<HabitLog[]>([]);
   const [streakByHabitId, setStreakByHabitId] = useState<Record<number, number>>({});
+  const [localHabits, setLocalHabits] = useState<Habit[]>(() => loadLocalHabits());
+  const [localLogsByHabit, setLocalLogsByHabit] = useState<Record<number, HabitLog[]>>(() => loadLocalLogs());
 
   useEffect(() => {
     const telegramId = telegramUser?.id ?? Number(import.meta.env.VITE_DEV_TELEGRAM_ID ?? 1);
-    api.getProfile(telegramId).then(setUser).catch(console.error);
+    api
+      .getProfile(telegramId)
+      .then((profile) => {
+        setUser(profile);
+        setIsOffline(false);
+      })
+      .catch(() => {
+        setIsOffline(true);
+        setUser({
+          id: 1,
+          telegram_id: telegramId,
+          timezone: "UTC",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      });
   }, [telegramUser]);
 
   const { habits, reload } = useHabits(user ?? undefined);
   const { overview } = useAnalytics(user ?? undefined);
+  const shownHabits = isOffline ? localHabits : habits;
+
+  const localOverview = useMemo(() => {
+    if (!isOffline) return null;
+    const total = localHabits.filter((h) => Boolean(h.is_active)).length;
+    const longest = Math.max(0, ...Object.values(streakByHabitId));
+    return {
+      total_habits: total,
+      active_streaks: Object.values(streakByHabitId).filter((x) => x > 0).length,
+      completion_rate: total ? Math.min(100, Math.round((Object.keys(localLogsByHabit).length / total) * 100)) : 0,
+      longest_streak: longest
+    };
+  }, [isOffline, localHabits, localLogsByHabit, streakByHabitId]);
 
   useEffect(() => {
-    if (!user || !habits.length) return;
-    Promise.all(habits.map((habit) => api.getStreak(user, habit.id)))
+    if (!shownHabits.length) return;
+    if (isOffline) {
+      const map: Record<number, number> = {};
+      shownHabits.forEach((habit) => {
+        map[habit.id] = (localLogsByHabit[habit.id] ?? []).length;
+      });
+      setStreakByHabitId(map);
+      return;
+    }
+    if (!user) return;
+    Promise.all(shownHabits.map((habit) => api.getStreak(user, habit.id)))
       .then((values) => {
         const map: Record<number, number> = {};
-        habits.forEach((habit, index) => {
+        shownHabits.forEach((habit, index) => {
           map[habit.id] = values[index].current_streak;
         });
         setStreakByHabitId(map);
       })
-      .catch(console.error);
-  }, [user, habits]);
+      .catch(() => setIsOffline(true));
+  }, [user, shownHabits, isOffline, localLogsByHabit]);
 
   const selectedHabit = useMemo(
-    () => habits.find((habit) => habit.id === selectedHabitId) ?? null,
-    [habits, selectedHabitId]
+    () => shownHabits.find((habit) => habit.id === selectedHabitId) ?? null,
+    [shownHabits, selectedHabitId]
   );
 
   async function createHabit(draft: Partial<Habit>) {
-    if (!user) return;
-    await api.createHabit(user, draft);
-    await reload();
+    if (isOffline || !user) {
+      const habit: Habit = {
+        id: Date.now(),
+        user_id: user?.id ?? 1,
+        title: draft.title ?? "Новая привычка",
+        description: draft.description,
+        emoji: draft.emoji ?? "⭐",
+        target_frequency: 1,
+        reminder_time: draft.reminder_time,
+        is_active: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      const next = [habit, ...localHabits];
+      setLocalHabits(next);
+      saveLocalHabits(next);
+      setView("habits");
+      return;
+    }
+    try {
+      await api.createHabit(user, draft);
+      await reload();
+    } catch {
+      setIsOffline(true);
+      return createHabit(draft);
+    }
     setView("habits");
   }
 
   async function doneHabit(habitId: number) {
-    if (!user) return;
-    await api.logHabit(user, habitId);
-    await reload();
+    if (isOffline || !user) {
+      const today = new Date().toISOString().slice(0, 10);
+      const current = localLogsByHabit[habitId] ?? [];
+      if (!current.find((log) => log.date === today)) {
+        const nextLogs = {
+          ...localLogsByHabit,
+          [habitId]: [...current, { id: Date.now(), habit_id: habitId, user_id: user?.id ?? 1, date: today }]
+        };
+        setLocalLogsByHabit(nextLogs);
+        saveLocalLogs(nextLogs);
+      }
+      return;
+    }
+    try {
+      await api.logHabit(user, habitId);
+      await reload();
+    } catch {
+      setIsOffline(true);
+      await doneHabit(habitId);
+    }
   }
 
   async function openHabit(habitId: number) {
-    if (!user) return;
-    const logs = await api.getLogs(user, habitId);
-    setHabitLogs(logs);
+    if (isOffline || !user) {
+      setHabitLogs(localLogsByHabit[habitId] ?? []);
+    } else {
+      try {
+        const logs = await api.getLogs(user, habitId);
+        setHabitLogs(logs);
+      } catch {
+        setIsOffline(true);
+        setHabitLogs(localLogsByHabit[habitId] ?? []);
+      }
+    }
     setSelectedHabitId(habitId);
     setView("habit_detail");
   }
 
   async function updateTimezone(timezone: string) {
     if (!user) return;
-    const next = await api.updateProfile(user, { timezone });
-    setUser(next);
+    if (isOffline) {
+      setUser({ ...user, timezone });
+      return;
+    }
+    try {
+      const next = await api.updateProfile(user, { timezone });
+      setUser(next);
+    } catch {
+      setIsOffline(true);
+      setUser({ ...user, timezone });
+    }
   }
 
   async function toggleHabit(habit: Habit) {
-    if (!user) return;
-    await api.updateHabit(user, habit.id, { is_active: habit.is_active ? 0 : 1 });
-    await reload();
+    if (isOffline || !user) {
+      const next = localHabits.map((h) => (h.id === habit.id ? { ...h, is_active: h.is_active ? 0 : 1 } : h));
+      setLocalHabits(next);
+      saveLocalHabits(next);
+      return;
+    }
+    try {
+      await api.updateHabit(user, habit.id, { is_active: habit.is_active ? 0 : 1 });
+      await reload();
+    } catch {
+      setIsOffline(true);
+      await toggleHabit(habit);
+    }
   }
 
   async function deleteHabit(id: number) {
-    if (!user) return;
-    await api.deleteHabit(user, id);
-    await reload();
+    if (isOffline || !user) {
+      const next = localHabits.filter((h) => h.id !== id);
+      setLocalHabits(next);
+      saveLocalHabits(next);
+      return;
+    }
+    try {
+      await api.deleteHabit(user, id);
+      await reload();
+    } catch {
+      setIsOffline(true);
+      await deleteHabit(id);
+    }
   }
 
   if (view === "habit_form") {
@@ -113,9 +258,9 @@ export function App() {
     <Layout title="HabitFlow" page={view as MainPage} onNavigate={(page) => setView(page)}>
       {view === "dashboard" && (
         <Dashboard
-          habits={habits}
+          habits={shownHabits}
           streakByHabitId={streakByHabitId}
-          overview={overview}
+          overview={isOffline ? localOverview : overview}
           onDoneHabit={(id) => doneHabit(id).catch(console.error)}
           onOpenHabit={(id) => openHabit(id).catch(console.error)}
           onCreateHabit={() => setView("habit_form")}
@@ -123,13 +268,15 @@ export function App() {
       )}
       {view === "habits" && (
         <HabitsManager
-          habits={habits}
+          habits={shownHabits}
           onCreate={createHabit}
           onToggle={toggleHabit}
           onDelete={deleteHabit}
         />
       )}
-      {view === "analytics" && <Analytics overview={overview} habits={habits} streakByHabitId={streakByHabitId} />}
+      {view === "analytics" && (
+        <Analytics overview={isOffline ? localOverview : overview} habits={shownHabits} streakByHabitId={streakByHabitId} />
+      )}
       {view === "settings" && <Settings user={user} onUpdateTimezone={updateTimezone} />}
     </Layout>
   );
