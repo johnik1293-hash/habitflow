@@ -24,8 +24,22 @@ async function callTelegram(method: string, payload: unknown): Promise<void> {
   }
 }
 
-export async function sendTelegramMessage(chatId: number, text: string): Promise<void> {
-  await callTelegram("sendMessage", { chat_id: chatId, text });
+export async function sendTelegramMessage(
+  chatId: number,
+  text: string,
+  replyMarkup?: unknown
+): Promise<void> {
+  const payload: Record<string, unknown> = { chat_id: chatId, text };
+  if (replyMarkup) payload.reply_markup = replyMarkup;
+  await callTelegram("sendMessage", payload);
+}
+
+export function miniAppButton(label = "🚀 Открыть HabitFlow") {
+  const url = process.env.MINI_APP_URL;
+  if (!url) return undefined;
+  return {
+    inline_keyboard: [[{ text: label, web_app: { url } }]]
+  };
 }
 
 export async function answerInlineQuery(inlineQueryId: string, text: string): Promise<void> {

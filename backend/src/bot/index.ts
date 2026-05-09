@@ -3,7 +3,7 @@ import { handleHabitsSummary, handleNewHabit } from "./handlers/habits";
 import { handleInline } from "./handlers/inline";
 import { handleStats } from "./handlers/logging";
 import { handleStart } from "./handlers/start";
-import { answerInlineQuery, sendTelegramMessage } from "../utils/telegram";
+import { answerInlineQuery, miniAppButton, sendTelegramMessage } from "../utils/telegram";
 
 export async function handleTelegramWebhook(req: Request, res: Response): Promise<void> {
   const update = req.body;
@@ -27,14 +27,15 @@ export async function handleTelegramWebhook(req: Request, res: Response): Promis
     }
 
     let message = "Команда не распознана. Доступно: /start /habits /newhabit /stats /app";
-    if (text.startsWith("/start")) message = handleStart(firstName);
+    let withButton = false;
+    if (text.startsWith("/start")) { message = handleStart(firstName); withButton = true; }
     if (text.startsWith("/habits")) message = handleHabitsSummary();
     if (text.startsWith("/newhabit")) message = handleNewHabit();
     if (text.startsWith("/stats")) message = handleStats();
     if (text.startsWith("/appss_verify")) message = "appss_b2ab7d";
-    else if (text.startsWith("/app")) message = `Открыть Mini App: ${process.env.MINI_APP_URL ?? "not configured"}`;
+    else if (text.startsWith("/app")) { message = "Нажми кнопку ниже, чтобы открыть HabitFlow"; withButton = true; }
 
-    await sendTelegramMessage(chatId, message);
+    await sendTelegramMessage(chatId, message, withButton ? miniAppButton() : undefined);
     console.log("Telegram command:", text, "=>", message);
     res.status(200).json({ ok: true, delivered: true });
   } catch (error) {
