@@ -1,0 +1,3 @@
+ALTER TABLE habits
+  ADD COLUMN IF NOT EXISTS reminder_interval INTEGER,
+  ADD COLUMN IF NOT EXISTS reminder_end TEXT;

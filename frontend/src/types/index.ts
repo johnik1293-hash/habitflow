@@ -18,6 +18,8 @@ export interface Habit {
   emoji: string;
   target_frequency: number;
   reminder_time?: string | null;
+  reminder_interval?: number | null;
+  reminder_end?: string | null;
   is_active: number | boolean;
   created_at: string;
   updated_at: string;

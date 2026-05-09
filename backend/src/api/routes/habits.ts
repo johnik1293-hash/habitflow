@@ -15,7 +15,7 @@ habitsRouter.get("/", async (req, res) => {
 });
 
 habitsRouter.post("/", async (req, res) => {
-  const { title, emoji = "⭐", reminder_time = null } = req.body;
+  const { title, emoji = "⭐", reminder_time = null, reminder_interval = null, reminder_end = null } = req.body;
   const userId = requireUserId(req, res);
   if (!userId) return;
 
@@ -45,13 +45,13 @@ habitsRouter.post("/", async (req, res) => {
   }
 
   const [habit] = await sql`
-    INSERT INTO habits (user_id, title, emoji, reminder_time)
-    VALUES (${userId}, ${title}, ${emoji}, ${reminder_time})
+    INSERT INTO habits (user_id, title, emoji, reminder_time, reminder_interval, reminder_end)
+    VALUES (${userId}, ${title}, ${emoji}, ${reminder_time}, ${reminder_interval}, ${reminder_end})
     RETURNING *
   `;
 
   if (reminder_time) {
-    await scheduleHabitNotification(userId, habit.id, reminder_time);
+    await scheduleHabitNotification(userId, habit.id, reminder_time, reminder_interval, reminder_end);
   }
 
   res.status(201).json(habit);
@@ -61,7 +61,7 @@ habitsRouter.put("/:id", async (req, res) => {
   const userId = requireUserId(req, res);
   if (!userId) return;
   const id = Number(req.params.id);
-  const { title, description, emoji, target_frequency, reminder_time, is_active } = req.body;
+  const { title, description, emoji, target_frequency, reminder_time, reminder_interval, reminder_end, is_active } = req.body;
 
   const [exists] = await sql`
     SELECT id FROM habits WHERE id = ${id} AND user_id = ${userId}
@@ -78,15 +78,18 @@ habitsRouter.put("/:id", async (req, res) => {
         emoji = COALESCE(${emoji ?? null}, emoji),
         target_frequency = COALESCE(${target_frequency ?? null}, target_frequency),
         reminder_time = COALESCE(${reminder_time ?? null}, reminder_time),
+        reminder_interval = ${reminder_interval !== undefined ? reminder_interval : sql`reminder_interval`},
+        reminder_end = ${reminder_end !== undefined ? reminder_end : sql`reminder_end`},
         is_active = COALESCE(${is_active ?? null}, is_active),
         updated_at = CURRENT_TIMESTAMP
     WHERE id = ${id} AND user_id = ${userId}
     RETURNING *
   `;
 
-  if (reminder_time !== undefined) {
-    if (reminder_time) {
-      await scheduleHabitNotification(userId, id, reminder_time);
+  if (reminder_time !== undefined || reminder_interval !== undefined || reminder_end !== undefined) {
+    const rt = updated.reminder_time;
+    if (rt) {
+      await scheduleHabitNotification(userId, id, rt, updated.reminder_interval, updated.reminder_end);
     } else {
       await cancelHabitNotifications(userId, id);
     }
