@@ -3,6 +3,8 @@ import { analyticsRouter } from "./routes/analytics";
 import { habitsRouter } from "./routes/habits";
 import { loggingRouter } from "./routes/logging";
 import { userRouter } from "./routes/user";
+import { tributeRouter } from "./routes/tribute";
+import { adminMigrateRouter } from "./routes/adminMigrate";
 
 export const apiRouter = Router();
 
@@ -14,3 +16,5 @@ apiRouter.use("/habits", habitsRouter);
 apiRouter.use("/habits", loggingRouter);
 apiRouter.use("/analytics", analyticsRouter);
 apiRouter.use("/user", userRouter);
+apiRouter.use("/tribute", tributeRouter);
+apiRouter.use("/admin/migrate", adminMigrateRouter);

@@ -23,6 +23,26 @@ habitsRouter.post("/", async (req, res) => {
     return;
   }
 
+  const [user] = await sql`
+    SELECT subscription_tier, subscription_expires_at FROM users WHERE id = ${userId}
+  `;
+  const isPremium =
+    user?.subscription_tier === "premium" &&
+    (!user.subscription_expires_at || new Date(user.subscription_expires_at) > new Date());
+
+  if (!isPremium) {
+    const [{ count }] = await sql`
+      SELECT COUNT(*) as count FROM habits WHERE user_id = ${userId} AND is_active = TRUE
+    `;
+    if (Number(count) >= 2) {
+      res.status(403).json({
+        error: "free_limit_reached",
+        message: "На бесплатном плане можно добавить не более 2 привычек. Оформи Premium, чтобы добавить больше."
+      });
+      return;
+    }
+  }
+
   const [habit] = await sql`
     INSERT INTO habits (user_id, title, emoji, reminder_time)
     VALUES (${userId}, ${title}, ${emoji}, ${reminder_time})

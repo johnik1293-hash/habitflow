@@ -26,13 +26,17 @@ export async function handleTelegramWebhook(req: Request, res: Response): Promis
       return;
     }
 
-    let message = "Команда не распознана. Доступно: /start /habits /newhabit /stats /app";
+    const tributeUrl = process.env.TRIBUTE_URL ?? "https://tribute.tg/habitflow";
+    let message = "Команда не распознана. Доступно: /start /habits /newhabit /stats /app /premium";
     let withButton = false;
     if (text.startsWith("/start")) { message = handleStart(firstName); withButton = true; }
-    if (text.startsWith("/habits")) message = handleHabitsSummary();
-    if (text.startsWith("/newhabit")) message = handleNewHabit();
-    if (text.startsWith("/stats")) message = handleStats();
-    if (text.startsWith("/appss_verify")) message = "appss_b2ab7d";
+    else if (text.startsWith("/habits")) message = handleHabitsSummary();
+    else if (text.startsWith("/newhabit")) message = handleNewHabit();
+    else if (text.startsWith("/stats")) message = handleStats();
+    else if (text.startsWith("/premium")) {
+      message = `⭐ HabitFlow Premium\n\nВ бесплатной версии можно вести до 2 привычек.\n\nPremium даёт:\n• Неограниченные привычки\n• Расширенная аналитика\n\nОформи подписку: ${tributeUrl}`;
+    }
+    else if (text.startsWith("/appss_verify")) message = "appss_b2ab7d";
     else if (text.startsWith("/app")) { message = "Нажми кнопку ниже, чтобы открыть HabitFlow"; withButton = true; }
 
     await sendTelegramMessage(chatId, message, withButton ? miniAppButton() : undefined);
