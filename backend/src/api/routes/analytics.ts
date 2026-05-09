@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { sql } from "../../database/db.js";
-import { requireUserId } from "../utils.js";
-import { getOverview } from "../../services/analyticsService.js";
-import { getCurrentStreak, getLongestStreak } from "../../services/streakService.js";
+import { sql } from "../../database/db";
+import { requireUserId } from "../utils";
+import { getOverview } from "../../services/analyticsService";
+import { getCurrentStreak, getLongestStreak } from "../../services/streakService";
 
 export const analyticsRouter = Router();
 

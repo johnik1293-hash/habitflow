@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
-import { handleHabitsSummary, handleNewHabit } from "./handlers/habits.js";
-import { handleInline } from "./handlers/inline.js";
-import { handleStats } from "./handlers/logging.js";
-import { handleStart } from "./handlers/start.js";
-import { answerInlineQuery, sendTelegramMessage } from "../utils/telegram.js";
+import { handleHabitsSummary, handleNewHabit } from "./handlers/habits";
+import { handleInline } from "./handlers/inline";
+import { handleStats } from "./handlers/logging";
+import { handleStart } from "./handlers/start";
+import { answerInlineQuery, sendTelegramMessage } from "../utils/telegram";
 
 export async function handleTelegramWebhook(req: Request, res: Response): Promise<void> {
   const update = req.body;

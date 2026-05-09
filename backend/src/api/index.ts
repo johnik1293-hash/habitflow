@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { analyticsRouter } from "./routes/analytics.js";
-import { habitsRouter } from "./routes/habits.js";
-import { loggingRouter } from "./routes/logging.js";
-import { userRouter } from "./routes/user.js";
+import { analyticsRouter } from "./routes/analytics";
+import { habitsRouter } from "./routes/habits";
+import { loggingRouter } from "./routes/logging";
+import { userRouter } from "./routes/user";
 
 export const apiRouter = Router();
 

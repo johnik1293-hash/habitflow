@@ -1,9 +1,9 @@
 import "dotenv/config";
 import cors from "cors";
 import express from "express";
-import { apiRouter } from "./api/index.js";
-import { handleTelegramWebhook } from "./bot/index.js";
-import { processDueNotifications } from "./services/notificationService.js";
+import { apiRouter } from "./api/index";
+import { handleTelegramWebhook } from "./bot/index";
+import { processDueNotifications } from "./services/notificationService";
 
 const app = express();
 

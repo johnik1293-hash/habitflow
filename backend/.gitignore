@@ -2,3 +2,5 @@ node_modules/
 dist/
 *.sqlite
 .env
+.vercel
+.env*.local

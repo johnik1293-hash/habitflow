@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { sql } from "../../database/db.js";
-import { requireUserId, todayDate } from "../utils.js";
+import { sql } from "../../database/db";
+import { requireUserId, todayDate } from "../utils";
 
 export const loggingRouter = Router();
 

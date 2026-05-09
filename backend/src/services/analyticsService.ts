@@ -1,5 +1,5 @@
-import { sql } from "../database/db.js";
-import { getCurrentStreak, getLongestStreak } from "./streakService.js";
+import { sql } from "../database/db";
+import { getCurrentStreak, getLongestStreak } from "./streakService";
 
 export async function getOverview(userId: number) {
   const [total] = await sql`

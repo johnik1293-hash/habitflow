@@ -1,4 +1,4 @@
-import { sql } from "../database/db.js";
+import { sql } from "../database/db";
 
 function toISODate(date: Date): string {
   return date.toISOString().slice(0, 10);

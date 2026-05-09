@@ -1,6 +1,6 @@
-import { sql } from "../database/db.js";
-import { sendTelegramMessage } from "../utils/telegram.js";
-import { getCurrentStreak } from "./streakService.js";
+import { sql } from "../database/db";
+import { sendTelegramMessage } from "../utils/telegram";
+import { getCurrentStreak } from "./streakService";
 
 type NotificationRow = {
   id: number;
