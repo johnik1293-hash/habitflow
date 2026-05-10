@@ -74,6 +74,38 @@ export async function handleTelegramWebhook(req: Request, res: Response): Promis
       return;
     }
 
+    const senderTelegramId = update?.message?.from?.id as number | undefined;
+    const adminId = process.env.ADMIN_TELEGRAM_ID ? Number(process.env.ADMIN_TELEGRAM_ID) : null;
+
+    // /grantpremium <days> <telegram_id> — только для владельца
+    if (text.startsWith("/grantpremium") && adminId && senderTelegramId === adminId) {
+      const parts = text.trim().split(/\s+/);
+      const days = Number(parts[1]);
+      const targetId = Number(parts[2]);
+      if (!days || !targetId || isNaN(days) || isNaN(targetId)) {
+        await sendTelegramMessage(chatId, "Использование: /grantpremium <дней> <telegram_id>");
+        res.status(200).json({ ok: true });
+        return;
+      }
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + days);
+      const [updated] = await sql`
+        UPDATE users
+        SET subscription_tier = 'premium',
+            subscription_expires_at = ${expiresAt.toISOString()},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE telegram_id = ${targetId}
+        RETURNING id, telegram_id
+      `;
+      if (!updated) {
+        await sendTelegramMessage(chatId, `❌ Пользователь с telegram_id ${targetId} не найден`);
+      } else {
+        await sendTelegramMessage(chatId, `✅ Premium выдан пользователю ${targetId} на ${days} дней (до ${expiresAt.toLocaleDateString("ru")})`);
+      }
+      res.status(200).json({ ok: true });
+      return;
+    }
+
     let message = "Команда не распознана. Доступно: /start /habits /newhabit /stats /app /premium";
     let withButton = false;
 

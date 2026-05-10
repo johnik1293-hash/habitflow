@@ -103,13 +103,16 @@ habitsRouter.delete("/:id", async (req, res) => {
   if (!userId) return;
   const id = Number(req.params.id);
 
-  const [deleted] = await sql`
-    DELETE FROM habits WHERE id = ${id} AND user_id = ${userId} RETURNING id
-  `;
-  if (!deleted) {
+  const [exists] = await sql`SELECT id FROM habits WHERE id = ${id} AND user_id = ${userId}`;
+  if (!exists) {
     res.status(404).json({ error: "Habit not found" });
     return;
   }
+
+  await sql`DELETE FROM notifications WHERE habit_id = ${id}`;
+  await sql`DELETE FROM habit_logs WHERE habit_id = ${id} AND user_id = ${userId}`;
+  await sql`DELETE FROM habits WHERE id = ${id} AND user_id = ${userId}`;
+
   res.status(204).send();
 });
 
