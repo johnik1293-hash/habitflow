@@ -336,7 +336,7 @@ export function App() {
         />
       )}
       {view === "analytics" && (
-        <Analytics overview={isOffline ? localOverview : overview} habits={shownHabits} streakByHabitId={streakByHabitId} />
+        <Analytics overview={isOffline ? localOverview : overview} habits={shownHabits} streakByHabitId={streakByHabitId} user={user} />
       )}
       {view === "settings" && (
         <Settings

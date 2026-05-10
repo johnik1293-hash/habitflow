@@ -51,3 +51,17 @@ analyticsRouter.get("/calendar/:month", async (req, res) => {
   `;
   res.json(rows);
 });
+
+analyticsRouter.get("/heatmap", async (req, res) => {
+  const userId = requireUserId(req, res);
+  if (!userId) return;
+  const rows = await sql`
+    SELECT date, COUNT(*) as count
+    FROM habit_logs
+    WHERE user_id = ${userId}
+      AND date >= (CURRENT_DATE - INTERVAL '90 days')::TEXT
+    GROUP BY date
+    ORDER BY date ASC
+  `;
+  res.json(rows);
+});
