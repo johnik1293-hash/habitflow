@@ -18,9 +18,10 @@ type HabitRow = {
 };
 
 function buildNotificationText(title: string, emoji: string, streak: number): string {
-  if (streak >= 7) return `${emoji} Невероятно! Стрик ${streak} дней — не останавливайся! 🔥`;
-  if (streak >= 3) return `${emoji} Стрик ${streak} дней — не разрывай цепочку! 💪`;
-  return `${emoji} Время для "${title}"! Не забудь отметить сегодня 🌟`;
+  const wrap = (text: string) => `❗❗❗ ${text.toUpperCase()} ❗❗❗`;
+  if (streak >= 7) return wrap(`${emoji} Невероятно! Стрик ${streak} дней — не останавливайся! 🔥`);
+  if (streak >= 3) return wrap(`${emoji} Стрик ${streak} дней — не разрывай цепочку! 💪`);
+  return wrap(`${emoji} Время для "${title}"! Не забудь отметить сегодня 🌟`);
 }
 
 // Следующее время в цепочке повторений
