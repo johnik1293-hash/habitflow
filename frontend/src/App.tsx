@@ -217,13 +217,13 @@ export function App() {
 
   async function toggleHabit(habit: Habit) {
     if (isOffline || !user) {
-      const next = localHabits.map((h) => (h.id === habit.id ? { ...h, is_active: h.is_active ? 0 : 1 } : h));
+      const next = localHabits.map((h) => (h.id === habit.id ? { ...h, is_active: !Boolean(h.is_active) } : h));
       setLocalHabits(next);
       saveLocalHabits(next);
       return;
     }
     try {
-      await api.updateHabit(user, habit.id, { is_active: habit.is_active ? 0 : 1 });
+      await api.updateHabit(user, habit.id, { is_active: !Boolean(habit.is_active) });
       await reload();
     } catch {
       setIsOffline(true);

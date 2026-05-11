@@ -80,7 +80,7 @@ habitsRouter.put("/:id", async (req, res) => {
         reminder_time = COALESCE(${reminder_time ?? null}, reminder_time),
         reminder_interval = ${reminder_interval !== undefined ? reminder_interval : sql`reminder_interval`},
         reminder_end = ${reminder_end !== undefined ? reminder_end : sql`reminder_end`},
-        is_active = COALESCE(${is_active ?? null}, is_active),
+        is_active = ${is_active !== undefined ? Boolean(is_active) : sql`is_active`},
         updated_at = CURRENT_TIMESTAMP
     WHERE id = ${id} AND user_id = ${userId}
     RETURNING *
