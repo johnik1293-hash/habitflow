@@ -8,13 +8,23 @@ async function request<T>(path: string, init: RequestInit = {}, user?: User): Pr
   if (user?.id) headers.set("x-user-id", String(user.id));
   if (user?.telegram_id) headers.set("x-telegram-id", String(user.telegram_id));
 
-  const response = await fetch(`${apiBase}${path}`, { ...init, headers });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || `API error ${response.status}`);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+
+  try {
+    const response = await fetch(`${apiBase}${path}`, { ...init, headers, signal: controller.signal });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || `API error ${response.status}`);
+    }
+    if (response.status === 204) return undefined as T;
+    return (await response.json()) as T;
+  } catch (e) {
+    if ((e as Error).name === "AbortError") throw new Error("Timeout: сервер не отвечает");
+    throw e;
+  } finally {
+    clearTimeout(timer);
   }
-  if (response.status === 204) return undefined as T;
-  return (await response.json()) as T;
 }
 
 export const api = {

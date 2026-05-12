@@ -75,7 +75,7 @@ export function App() {
       });
   }, [telegramUser]);
 
-  const { habits, reload } = useHabits(user ?? undefined);
+  const { habits, setHabits, reload } = useHabits(user ?? undefined);
   const { overview } = useAnalytics(user ?? undefined);
   const shownHabits = isOffline ? localHabits : habits;
 
@@ -265,8 +265,9 @@ export function App() {
           onBack={() => setView("dashboard")}
           onUpdate={async (patch) => {
             if (!user) return;
-            await api.updateHabit(user, selectedHabit.id, patch);
-            await reload();
+            const updated = await api.updateHabit(user, selectedHabit.id, patch);
+            // обновляем локально — без лишнего запроса reload()
+            setHabits((prev) => prev.map((h) => h.id === updated.id ? updated : h));
           }}
         />
       </Layout>
