@@ -50,15 +50,21 @@ export function HabitDetail({
   const [interval, setIntervalVal]     = useState(habit.reminder_interval ?? 60);
   const [saving, setSaving]            = useState(false);
   const [saved, setSaved]              = useState(false);
+  const [saveError, setSaveError]      = useState(false);
 
   async function save(patch: Partial<Habit>) {
     if (!onUpdate) return;
     setSaving(true);
     setSaved(false);
+    setSaveError(false);
     try {
       await onUpdate(patch);
       setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (e) {
+      console.error("save reminder error:", e);
+      setSaveError(true);
+      setTimeout(() => setSaveError(false), 3000);
     } finally {
       setSaving(false);
     }
@@ -186,11 +192,12 @@ export function HabitDetail({
 
             {/* Кнопка сохранить */}
             <button
-              onClick={handleSave}
+              type="button"
+              onClick={() => { handleSave().catch(console.error); }}
               disabled={saving}
               style={{
                 marginTop: "14px", width: "100%", padding: "13px",
-                background: saved ? "#10b981" : color,
+                background: saveError ? "#ef4444" : saved ? "#10b981" : color,
                 color: "#fff", border: "none", borderRadius: "12px",
                 fontWeight: 700, fontSize: "15px",
                 cursor: saving ? "not-allowed" : "pointer",
@@ -198,7 +205,7 @@ export function HabitDetail({
                 transition: "background 0.3s"
               }}
             >
-              {saving ? "Сохраняем…" : saved ? "✓ Сохранено" : "Сохранить"}
+              {saving ? "Сохраняем…" : saved ? "✓ Сохранено" : saveError ? "Ошибка, попробуй снова" : "Сохранить"}
             </button>
           </>
         )}
