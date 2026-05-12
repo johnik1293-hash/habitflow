@@ -49,11 +49,19 @@ export function HabitDetail({
   const [endTime, setEndTime]          = useState(habit.reminder_end ?? "22:00");
   const [interval, setIntervalVal]     = useState(habit.reminder_interval ?? 60);
   const [saving, setSaving]            = useState(false);
+  const [saved, setSaved]              = useState(false);
 
   async function save(patch: Partial<Habit>) {
     if (!onUpdate) return;
     setSaving(true);
-    try { await onUpdate(patch); } finally { setSaving(false); }
+    setSaved(false);
+    try {
+      await onUpdate(patch);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleToggle(on: boolean) {
@@ -65,19 +73,20 @@ export function HabitDetail({
     }
   }
 
-  async function handleModeChange(repeat: boolean) {
+  function handleModeChange(repeat: boolean) {
     setIsRepeat(repeat);
-    if (enabled) await save(buildPatch(repeat, startTime, endTime, interval));
+    setSaved(false);
   }
 
-  async function handleChange(field: "start" | "end" | "interval", val: string | number) {
-    const ns = field === "start"    ? val as string  : startTime;
-    const ne = field === "end"      ? val as string  : endTime;
-    const ni = field === "interval" ? val as number  : interval;
+  function handleChange(field: "start" | "end" | "interval", val: string | number) {
     if (field === "start")    setStartTime(val as string);
     if (field === "end")      setEndTime(val as string);
     if (field === "interval") setIntervalVal(val as number);
-    if (enabled) await save(buildPatch(isRepeat, ns, ne, ni));
+    setSaved(false);
+  }
+
+  async function handleSave() {
+    await save(buildPatch(isRepeat, startTime, endTime, interval));
   }
 
   return (
@@ -136,7 +145,7 @@ export function HabitDetail({
                   onChange={(e) => handleChange("start", e.target.value)}
                   style={{ flex: 1, border: `1.5px solid ${color}`, background: "var(--tg-theme-bg-color, #fff)" }} />
                 <span style={{ fontSize: "13px", color: "var(--tg-theme-hint-color, #999)", whiteSpace: "nowrap" }}>
-                  {saving ? "Сохраняем…" : "каждый день"}
+                  каждый день
                 </span>
               </div>
             ) : (
@@ -172,11 +181,25 @@ export function HabitDetail({
                       style={{ border: `1.5px solid ${color}`, background: "var(--tg-theme-bg-color, #fff)" }} />
                   </div>
                 </div>
-                <div style={{ fontSize: "12px", color: "var(--tg-theme-hint-color, #999)" }}>
-                  {saving ? "Сохраняем…" : `Бот напомнит каждые ${INTERVALS.find(i => i.value === interval)?.label ?? interval + " мин"} с ${startTime} до ${endTime}`}
-                </div>
               </div>
             )}
+
+            {/* Кнопка сохранить */}
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              style={{
+                marginTop: "14px", width: "100%", padding: "13px",
+                background: saved ? "#10b981" : color,
+                color: "#fff", border: "none", borderRadius: "12px",
+                fontWeight: 700, fontSize: "15px",
+                cursor: saving ? "not-allowed" : "pointer",
+                opacity: saving ? 0.7 : 1,
+                transition: "background 0.3s"
+              }}
+            >
+              {saving ? "Сохраняем…" : saved ? "✓ Сохранено" : "Сохранить"}
+            </button>
           </>
         )}
       </div>
